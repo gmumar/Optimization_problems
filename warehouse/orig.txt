@@ -1,0 +1,13 @@
+    for c in range(0, customerCount):
+        if capacityRemaining[warehouseIndex] >= customerSizes[c]:
+            solution[c] = warehouseIndex
+            capacityRemaining[warehouseIndex] -= customerSizes[c]
+        else:
+            warehouseIndex += 1
+            assert capacityRemaining[warehouseIndex] >= customerSizes[c]
+            solution[c] = warehouseIndex
+            capacityRemaining[warehouseIndex] -= customerSizes[c]
+
+    used = [0]*warehouseCount
+    for wa in solution:
+        used[wa] = 1

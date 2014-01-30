@@ -1,0 +1,8 @@
+solution status: optimal solution found
+objective value:                              3967180
+x_0                                                 1 	(obj:1445900)
+x_2                                                 1 	(obj:1365820)
+x_4                                                 1 	(obj:562272)
+x_5                                                 1 	(obj:501060)
+x_46                                                1 	(obj:83452)
+x_210                                               1 	(obj:8676)

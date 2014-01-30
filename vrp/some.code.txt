@@ -1,0 +1,34 @@
+#    added = []
+#
+#     for k in range(customerCount):
+#         
+#         uniq = uniqueTours(vehicleTours)
+#         # gets the number of unique tours to beat symmetry
+#         print(uniq)
+#         print (vehicleTours) 
+#         
+#         # Insert customer into one of the unique tours
+#         for i in range(uniq):# Loops through each car with a unique tour
+#             
+#             tour = copy.copy(vehicleTours[i])
+#             for j in range(1,len(tour)):# Loops through all the possible places within a tour of a car
+#                  
+#                 minLen = float("inf")
+#                 
+#                 for cus in range(1,customerCount):# For each possible slot in the tour puts each car and picks the best one
+#                     
+#                     if cus not in added:
+#                         #if len(vehicleTours[i])
+#                         vehicleTours[i].insert(j,cus)
+#                     else:
+#                         continue
+#                     
+#                     newLen = totalLen(vehicleTours)
+#                     
+#                     if(newLen<minLen and remainingCap[i]>0):
+#                         minLen = newLen
+#                         added.append(cus)
+#                         remainingCap[i] = remainingCap[i] - customers[cus][0]
+#                         break
+#                     else:
+#                         vehicleTours[i] = copy.copy(tour)

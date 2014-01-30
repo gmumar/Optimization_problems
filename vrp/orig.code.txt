@@ -1,0 +1,22 @@
+
+    vehicleTours = []
+
+    customerIndexs = set(range(1, customerCount))  # start at 1 to remove depot index
+    
+    for v in range(0, vehicleCount):
+        # print "Start Vehicle: ",v
+        vehicleTours.append([])
+        capacityRemaining = vehicleCapacity
+        while sum([capacityRemaining >= customers[ci][0] for ci in customerIndexs]) > 0:
+            used = set()
+            order = sorted(customerIndexs, key=lambda ci: -customers[ci][0])
+            for ci in order:
+                if capacityRemaining >= customers[ci][0]:
+                    capacityRemaining -= customers[ci][0]
+                    vehicleTours[v].append(ci)
+                    # print '   add', ci, capacityRemaining
+                    used.add(ci)
+            customerIndexs -= used
+
+    # checks that the number of customers served is correct
+    assert sum([len(v) for v in vehicleTours]) == customerCount - 1

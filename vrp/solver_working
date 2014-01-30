@@ -1,0 +1,490 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import math
+
+def length(customer1, customer2):
+    return math.sqrt((customer1[1] - customer2[1])**2 + (customer1[2] - customer2[2])**2)
+
+
+def tourLen(mlist):
+    sum = 0
+    
+    for i in range(len(mlist)-1):
+        sum = sum + length(customers[mlist[i]],customers[mlist[i+1]])
+
+    return sum
+
+tabuCount = 0
+def Opt(tours):
+    global customerCount
+    global remainingCap
+    global customers
+    global tabu
+    global tabuCount
+    
+    best = []
+    
+    # Pick random customer
+    customer = 0
+    while customer == 0:
+        orig_i = random.randint(0,vehicleCount-1) # which tour
+        orig_j = random.randint(1,len(tours[orig_i])-1) # position in tour i
+        
+        customer = tours[orig_i][orig_j]
+        
+        # check if swaping this customer is tabu
+        if tabu[customer] >= 0:
+            tabu[customer] = tabu[customer] - 1
+        else:
+            tabuCount += 1
+            if (tabuCount>5000):
+                tabu = [5]*customerCount
+            continue
+
+    # remove from original position
+    tours[orig_i].remove(customer)
+    remainingCap[orig_i] = remainingCap[orig_i] + customers[customer][0]
+    
+    # replace in all other possible positions
+    minLen = float("inf")
+#     seen = []
+    for i in range(vehicleCount): # use symmetry breaking here
+        tour = copy.copy(tours[i])
+        
+#         if tour in seen:
+#             continue
+#         else:
+#             seen.append(tour)
+        
+        for j in range(1,len(tours[i])):
+            
+            if(remainingCap[i] - customers[customer][0] >=0):
+                pass
+            else:
+                continue
+            
+            tours[i].insert(j,customer)
+            
+            newLen = totalLen(tours)
+            
+            if(newLen<=minLen):
+                # better swap
+                minLen = newLen
+                best = copy.copy(tours[i])
+                best_i = i
+            else:
+                # worse swap
+                pass
+            
+            tours[i] = copy.copy(tour)
+    
+    # select min configuration
+    if best != []:
+        tours[best_i] = copy.copy(best)
+        remainingCap[best_i] = remainingCap[best_i] - customers[customer][0]
+    else:
+        tours[orig_i].insert(orig_j,customer)
+        #print("no best",tours,customer)
+    
+    return tours
+
+def update(i,j,orig,new):
+    # in tour i, j was replaced with new and originally had orig
+    if i == -1:
+        return
+    
+    global remainigCap
+    global customers
+    
+    remainingCap[i] = remainingCap[i] + customers[orig][0] - customers[new][0]
+    
+    
+
+def Opt2(tours):
+    global customerCount
+    global remainingCap
+    global customers
+    
+    # Pick random customer
+    customerA = 0
+    while customerA == 0:
+        orig_i = random.randint(0,vehicleCount-1) # which tour
+        orig_j = random.randint(1,len(tours[orig_i])-1) # position in tour i
+        
+        customerA = tours[orig_i][orig_j]
+        customerADemand = customers[customerA][0]
+
+    best = []
+    sfrom = (-1,-1,-1,-1)
+    sto = (-1,-1,-1,-1)
+    # swap in all other possible positions
+    minLen = float("inf")
+    # Select other customer
+    for i in range(vehicleCount): # use symmetry breaking here
+        for j in range(1,len(tours[i])-1):
+            # i,j 
+            # orig_i, orig_j is gona get moved out of orig_i
+            
+            if i == orig_i and j == orig_j:
+                continue
+            
+            customerB = tours[i][j]
+            customerBDemand = customers[customerB][0]
+            
+            orig = copy.deepcopy(tours)
+
+            if((remainingCap[i] + customerBDemand - customerADemand) >= 0 and (remainingCap[orig_i] + customerADemand - customerBDemand )>= 0):
+                # feasible swap, swap vehicleTours[i][j[ with customer who is at vehicleTours[orig_i][orig_j]
+                temp = tours[i][j]
+                tours[i][j] = customerA # brining A into i
+                tours[orig_i][orig_j] = temp
+                
+                newLen = totalLen(tours)
+                if(newLen<=minLen):
+                    minLen = newLen
+                    best = copy.deepcopy(tours)
+                    sfrom = (i,j,tours[i][j],tours[orig_i][orig_j]) #shows that in the ith tour j was replaced with tours[i][j]
+                    sto = (orig_i,orig_j,tours[orig_i][orig_j],tours[i][j])
+                    
+                tours = copy.deepcopy(orig)
+                
+            else:
+                continue
+    
+    # select min configuration
+    if best == []:
+        pass
+        #tours = copy.deepcopy(tours)
+    else:
+        tours = copy.deepcopy(best)
+        update(sfrom[0],sfrom[1],sfrom[3],sfrom[2])
+        update(sto[0],sto[1],sto[3],sto[2])
+
+    return tours
+
+count = 0
+swap = []
+def validSwap(a,b):
+    global swap
+    global count
+    
+    if((a,b) in swap ): #or (b,a) in swap
+        #this swap has happened before 
+        count = count + 1
+        if(count > 50):
+            count = 0
+            swap = []
+            #print("<<<----------------------reset")
+        return False
+    else:
+        count = 0
+        swap.append((a,b))
+        return True
+
+def totalLen(Tours):
+    obj = 0
+    for v in range(0, vehicleCount):
+        vehicleTour = Tours[v]
+        if len(vehicleTour) > 0:
+            obj += length(customers[0],customers[vehicleTour[0]])
+            for i in range(0, len(vehicleTour) - 1):
+                #print i,vehicleTour[i+1]
+                obj += length(customers[vehicleTour[i]],customers[vehicleTour[i + 1]])
+            obj += length(customers[vehicleTour[-1]],customers[0])
+            
+    return obj
+
+def uniqueTours(tours):
+    # This is to break symmetry
+    global vehicleTours
+
+    #print vehicleTours
+    seen = []
+    tourcount = 0
+    for tour in vehicleTours:
+        if tour not in seen:
+            seen.append(tour)
+            tourcount = tourcount + 1
+    
+    return tourcount
+
+def solveIt(inputData):
+    # Modify this code to run your optimization algorithm
+
+    # parse the input
+    lines = inputData.split('\n')
+    
+    global vehicleCount
+    global customers
+    global customerCount
+
+    parts = lines[0].split()
+    customerCount = int(parts[0])
+    vehicleCount = int(parts[1])
+    vehicleCapacity = int(parts[2])
+    depotIndex = 0
+    
+    print(customerCount,vehicleCount,vehicleCapacity)
+
+    customers = []
+    for i in range(1, customerCount+1):
+        line = lines[i]
+        parts = line.split()
+        customers.append((int(parts[0]), float(parts[1]),float(parts[2])))
+
+    # demand ,x ,y
+    
+    sortedCustomers = copy.copy(customers)
+    for i in range(len(sortedCustomers)):
+        sortedCustomers[i] = (sortedCustomers[i],i)
+    sortedCustomers.sort()
+    #sortedCustomers.reverse()
+    
+    global tabu
+    tabu = [5]*customerCount
+    #---------------------------------------------INIT-----------------------------------------------
+
+    global vehicleTours
+    vehicleTours = []
+    for i in range(vehicleCount):
+        # initialize all routes to 0->0
+        vehicleTours.append([0,0])
+    
+    
+    #print(customers)
+    #print(sortedCustomers)
+    
+    global remainingCap
+    remainingCap = [vehicleCapacity]*vehicleCount
+
+#===============================================================================
+#     visited = set()
+#     visited.add(0)
+#     bestTour = 0
+#     k = 0
+#     #for k in range(customerCount):
+#     while len(visited) < customerCount:
+#         #customer = random.randint(0,customerCount-1)
+#         customer = sortedCustomers[k][1]
+#         k = k+1
+#         print(customer)
+#         
+#         #print("init",vehicleTours)
+#         #print("visited",visited)
+#         
+#         if customer not in visited: # Pick up customer not visited
+#             placed = 0
+#             
+#             #visited.append(customer)
+#             minLen = float("inf") # need to find min for each customer
+#             
+#             # Now place this customer in a unique place
+#             unique = uniqueTours(vehicleTours)
+#             best = []
+#             #print(unique)
+#             for i in range(unique):
+#                 tour = copy.copy(vehicleTours[i])
+#                 
+#                 for j in range(1,len(tour)):
+#                     vehicleTours[i].insert(j,customer) # insert at the jth spot in the ith tour customer
+#                     
+#                     newLen = totalLen(vehicleTours)
+#                     
+#                     #print(newLen,minLen)
+#                     #print(vehicleTours,newLen)
+#                     
+#                     if(newLen<minLen and (remainingCap[i] - customers[customer][0])>=0):
+#                         # place for insertion is good keep it
+#                         minLen = newLen
+#                         bestTour = i # Save the best tour in which to insert
+#                         remainingCap[i] = remainingCap[i] - customers[customer][0]
+#                         best = copy.copy(vehicleTours[i])
+#                         visited.add(customer)
+#                         placed = 1
+#                     else:
+#                         # place of insertion is not good undo
+#                         pass
+#                     vehicleTours[i] = copy.copy(tour)
+#             
+#             
+#             global swap
+#             if placed == 0:
+#                 #print("not placed",customer)
+#                 for i in range(unique):
+#                     #print("next tour")
+#                     if placed == 1:
+#                         break
+#                     
+#                     tour = copy.copy(vehicleTours[i])
+#                 
+#                     for j in range(1,len(tour)):
+#                         #print("nest place")
+#                         if(remainingCap[i] + customers[vehicleTours[i][j]][0] - customers[customer][0] >=0 ):
+#                             # Good swap
+#                             # gona swap vehicleTours[i][j] with customer at vehicle[i][j] need to make this swap tabu
+#                             print(vehicleTours[i][j],customer)
+#                             if not validSwap(vehicleTours[i][j],customer):
+# 
+#                                 print("not valid")
+#                                 continue
+#                             count = 0
+#                             validSwap(customer,vehicleTours[i][j])
+#                             remainingCap[i] = remainingCap[i] + customers[vehicleTours[i][j]][0] - customers[customer][0]
+#                             visited.remove(vehicleTours[i][j])
+#                             visited.add(customer)
+#                             vehicleTours[i][j] = customer
+#                             placed = 1
+#                             break
+#                         else:
+#                             # Bad swap
+#                             pass
+#                 
+#             #print(visited)
+#             print(vehicleTours)
+#             if best != []:
+#                 vehicleTours[bestTour] = copy.copy(best)
+#                 #remainingCap[bestTour] = remainingCap[i] - customers[customer][0]
+#             
+#         else:
+#             # If customer visited then skip
+#             pass
+#===============================================================================
+    
+    while len(sortedCustomers) > 0:
+        temp = sortedCustomers.pop()
+        customer = temp[1] # largest customer
+        #print(customer)
+
+        
+        minIndex = float("inf")
+        minCap = float("inf")
+        for i in range(len(remainingCap)):
+            if(remainingCap[i]<minCap and remainingCap[i] - customers[customer][0] >=0):
+                minCap = remainingCap[i]
+                minIndex = i # lightest tour
+        
+        remainingCap[minIndex] = remainingCap[minIndex] - customers[customer][0]
+        #print(remainingCap,minIndex)
+            
+        tour = copy.copy(vehicleTours[minIndex])
+        minLen = float("inf")
+        
+        for i in range(1,len(tour)):# place at the ith place in the tour
+            tour.insert(i,customer)
+            newLen = tourLen(tour)
+            
+            if(newLen<minLen):
+                minLen = newLen
+                best = copy.copy(tour)
+            else:
+                pass
+            
+            vehicleTours[minIndex] = copy.copy(tour)
+        
+        vehicleTours[minIndex] = copy.copy(best)
+            
+    minLen = float("inf")
+    
+    for v in range(0,vehicleCount):
+        for p in range(len(vehicleTours[v])-2):
+            if (vehicleTours[v][p] == 0 and vehicleTours[v][p+1] == 0):
+                vehicleTours[v].pop(0)
+                
+    #vehicleTours = [[0, 5, 49, 10, 39, 33, 45, 15, 44, 37, 17, 12, 0], [0, 18, 13, 41, 40, 19, 42, 4, 47, 0], [0, 32, 1, 22, 3, 29, 21, 34, 30, 9, 50, 16, 38, 46, 0], [0, 11, 2, 20, 35, 36, 28, 31, 8, 0], [0, 27, 48, 26, 7, 23, 43, 24, 25, 14, 6, 0]]
+
+    #for k in range(160000): # Optimizations
+    count = 0
+    while 1 : 
+        for l in range(10):
+            vehicleTours = Opt(vehicleTours)
+        vehicleTours = Opt2(vehicleTours)
+        newLen = totalLen(vehicleTours)
+
+        if(newLen <= minLen):
+            minLen = newLen
+            bestTours = copy.deepcopy(vehicleTours)
+            count = 0
+            print vehicleTours
+            print newLen
+            print remainingCap
+        else:
+            count += 1
+            if(count>10000):
+                count = 0
+                minLen *= 1.03
+                print "Reheat",minLen
+                
+    
+    vehicleTours = copy.deepcopy(bestTours)
+    
+    
+    #print vehicleTours    
+    # checks that the number of customers served is correct
+    #assert sum([len(v) for v in vehicleTours]) == customerCount - 1
+
+    
+    for i in range(vehicleCount):
+        remain = vehicleCapacity
+        for j in range(len(vehicleTours[i])):
+            remain -= customers[vehicleTours[i][j]][0]
+        
+        print remain
+            
+
+    # calculate the cost of the solution; for each vehicle the length of the route
+    obj = 0
+    for v in range(0, vehicleCount):
+        vehicleTour = vehicleTours[v]
+        if len(vehicleTour) > 0:
+            obj += length(customers[depotIndex],customers[vehicleTour[0]])
+            for i in range(0, len(vehicleTour) - 1):
+                obj += length(customers[vehicleTour[i]],customers[vehicleTour[i + 1]])
+            obj += length(customers[vehicleTour[-1]],customers[depotIndex])
+
+
+
+    # prepare the solution in the specified output format
+
+    for v in range(0,vehicleCount):
+        for p in range(len(vehicleTours[v])-2):
+            if (vehicleTours[v][p] == 0 and vehicleTours[v][p+1] == 0):
+                vehicleTours[v].pop(0)
+                
+            
+
+    for v in range(0, vehicleCount):
+        #print v
+        if(len(vehicleTours[v])<=2):
+            #vehicleTours[v].pop()
+            vehicleTours[v] = []
+            #print "breaking",v
+            #break
+        else:
+            vehicleTours[v].pop()
+            vehicleTours[v].pop(0)
+    
+    
+    outputData = str(obj) + ' ' + str(0) + '\n'
+    for v in range(0, vehicleCount):
+        outputData += str(depotIndex) + ' ' + ' '.join(map(str,vehicleTours[v])) + ' ' + str(depotIndex) + '\n'
+
+    return outputData
+
+
+import sys
+import copy
+import random
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        fileLocation = sys.argv[1].strip()
+        inputDataFile = open(fileLocation, 'r')
+        inputData = ''.join(inputDataFile.readlines())
+        inputDataFile.close()
+        print 'Solving:', fileLocation
+        print solveIt(inputData)
+    else:
+
+        print 'This test requires an input file.  Please select one from the data directory. (i.e. python solver.py ./data/vrp_5_4_1)'
+
